@@ -291,11 +291,19 @@ function recalcAll() {
 
 function recalcRow(product) {
     // Formula: Plating = Weight * Thickness * GoldPrice * Factor
-    product.platingCost = product.weight * product.thickness * state.goldPrice * state.platingFactor;
-    product.totalCost = product.rawCost + product.platingCost;
+    // Update ONLY if not manually fixed
+    if (!product.manualPlating) {
+        product.platingCost = product.weight * product.thickness * state.goldPrice * state.platingFactor;
+    }
+
+    // Ensure numbers
+    const pCost = parseFloat(product.platingCost) || 0;
+    const rCost = parseFloat(product.rawCost) || 0;
+
+    product.totalCost = rCost + pCost;
 
     // Markup
-    const multiplier = product.markupPercent / 100;
+    const multiplier = (parseFloat(product.markupPercent) || 0) / 100;
     product.salePrice = product.totalCost + (product.totalCost * multiplier);
 }
 
@@ -303,15 +311,24 @@ function updateField(id, field, value) {
     const product = state.products.find(p => p.id === id);
     if (!product) return;
 
-    // Parse numbers for numeric fields
-    if (['rawCost', 'weight', 'thickness', 'markupPercent'].includes(field)) {
+    // Special logic for manual Plating Cost
+    if (field === 'platingCost') {
+        if (value === '' || value === null) {
+            // User cleared input -> Revert to auto calculation
+            product.manualPlating = false;
+        } else {
+            // User typed value -> specific override
+            product.manualPlating = true;
+            product.platingCost = parseFloat(value);
+        }
+    } else if (['rawCost', 'weight', 'thickness', 'markupPercent'].includes(field)) {
         product[field] = parseFloat(value) || 0;
     } else {
         product[field] = value;
     }
 
     recalcRow(product);
-    renderGrid(); // Efficient re-render (could be optimized to row-only)
+    renderGrid();
     saveLocal();
 }
 
@@ -369,9 +386,20 @@ function renderGrid() {
                 </div>
             </td>
             
-            <td class="readonly">
+            <td>
                 <div class="cell-wrapper">
-                    <span>R$ ${formatCurrency(p.platingCost)}</span>
+                    <span>R$</span>
+                    <input type="number" step="0.01" value="${p.manualPlating ? p.platingCost : p.platingCost.toFixed(2)}" 
+                        title="Digite para fixar. Limpe para cálculo automático."
+                        onchange="updateField(${p.id}, 'platingCost', this.value)">
+                </div>
+            </td>
+            <td>
+                <div class="cell-wrapper">
+                    <span>R$</span>
+                    <input type="number" step="0.01" value="${p.manualPlating ? p.platingCost : p.platingCost.toFixed(2)}" 
+                        title="Digite para fixar. Limpe para cálculo automático."
+                        onchange="updateField(${p.id}, 'platingCost', this.value)">
                 </div>
             </td>
             <td class="readonly">
