@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Precifica Gold | Sistema Integrado</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-gem mobile-icon"></i>
+                <span>Precifica<span class="text-gold">SaaS</span></span>
+            </div>
+
+            <div class="status-card">
+                <div class="status-item">
+                    <label>Ouro (Online)</label>
+                    <div class="val-refresh">
+                        <span id="goldPriceDisplay" class="highlight-val">R$ --</span>
+                        <i class="fa-solid fa-sync" id="btnRefreshGold"></i>
+                    </div>
+                    <small id="lastUpdate">Carregando...</small>
+                </div>
+            </div>
+
+            <nav>
+                <a href="#" class="active"><i class="fa-solid fa-table"></i> Tabela de Produtos</a>
+                <a href="#settings"><i class="fa-brands fa-github"></i> Conexão GitHub</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <header class="top-bar">
+                <div class="header-titles">
+                    <h2>Gestão de Preços</h2>
+                    <p class="subtitle">Planilha de Cálculo em Nuvem</p>
+                </div>
+
+                <div class="actions-bar">
+                    <div class="gh-actions">
+                        <span id="ghStatus" class="status-text">Não conectado</span>
+                        <button id="btnLoadGithub" class="btn-secondary"><i class="fa-solid fa-cloud-download-alt"></i>
+                            Baixar do Git</button>
+                        <button id="btnSaveGithub" class="btn-primary"><i class="fa-solid fa-cloud-upload-alt"></i>
+                            Salvar no Git</button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Configuration Panel -->
+            <div class="card settings-panel" id="settings">
+                <h3><i class="fa-solid fa-sliders"></i> Parâmetros Globais</h3>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Fator de Banho</label>
+                        <input type="number" id="platingFactor" step="0.001">
+                    </div>
+                    <!-- Create GitHub Config Fields -->
+                    <div class="field">
+                        <label>GitHub Token <small>(Personal Access Token)</small></label>
+                        <input type="password" id="ghToken" placeholder="ghp_...">
+                    </div>
+                    <div class="field">
+                        <label>Usuário / Organização</label>
+                        <input type="text" id="ghOwner" placeholder="Ex: usuario">
+                    </div>
+                    <div class="field">
+                        <label>Repositório</label>
+                        <input type="text" id="ghRepo" placeholder="Ex: precifica-db">
+                    </div>
+                    <div class="field">
+                        <label>Caminho do Arquivo <small>(Pasta/Nome.json)</small></label>
+                        <input type="text" id="ghPath" placeholder="Ex: dados/produtos.json">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Grid -->
+            <div class="card grid-card">
+                <div class="grid-header">
+                    <h3>Produtos</h3>
+                    <button class="btn-sm btn-outline" onclick="addRow()"><i class="fa-solid fa-plus"></i> Nova
+                        Linha</button>
+                </div>
+
+                <div class="table-container">
+                    <table id="gridTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">SKU</th>
+                                <th>Produto</th>
+                                <th style="width: 120px;">Custo Bruto</th>
+                                <th style="width: 100px;">Peso</th>
+                                <th style="width: 100px;">Banho</th>
+                                <th style="width: 120px; background: #f8fafc;">R$ Banho</th>
+                                <th style="width: 120px; background: #f8fafc;">Total Custo</th>
+                                <th style="width: 100px;">Margem %</th>
+                                <th style="width: 140px; color: var(--primary);">Preço Venda</th>
+                                <th style="width: 50px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Rows rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
