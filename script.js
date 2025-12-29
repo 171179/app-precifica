@@ -70,15 +70,75 @@ async function fetchLiveGoldPrice() {
     }
 }
 
+// --- Core Logic ---
+// --- Core Logic ---
 function updateGoldUI(price, date) {
-    // Price per Gram? The API usually returns ~400+ for gram.
-    // Confirm unit. XAU/BRL is typically per gram or oz depending on provider.
-    // AwesomeAPI XAUBRL 'bid' is usually 1g price in BRL.
-    if (ui.goldPriceDisplay) ui.goldPriceDisplay.textContent = `R$ ${formatCurrency(price)}`;
-    if (ui.goldLastUpdate) ui.goldLastUpdate.textContent = `Atualizado às ${date}`;
+    // Legacy element (if exists)
+    const elPrice = document.getElementById('goldPrice');
+    if (elPrice) elPrice.textContent = `R$ ${price.toFixed(2)}`;
+
+    // New Widget: Gold Price
+    const elWidgetGold = document.getElementById('widgetGoldPrice');
+    if (elWidgetGold) elWidgetGold.textContent = `R$ ${price.toFixed(2)}`;
+
+    // Update Timestamp
+    const elLastUpdate = document.getElementById('goldLastUpdate');
+    if (elLastUpdate) {
+        // Format Current Date
+        const now = new Date();
+        const formattedDate = now.toLocaleString('pt-BR');
+        elLastUpdate.innerHTML = `Atualizado: ${formattedDate} <i class="fa-solid fa-rotate" onclick="fetchLiveGoldPrice()" style="cursor:pointer" title="Atualizar Agora"></i>`;
+    }
+
+    // New Widget: Avg Plating Cost (1g * 1mil * Price * Factor)
+    const elWidgetPlating = document.getElementById('widgetAvgPlating');
+    if (elWidgetPlating) {
+        const factor = state.platingFactor || 0.02;
+        const avgCost = 1 * 1 * price * factor;
+        elWidgetPlating.textContent = `R$ ${avgCost.toFixed(2)}`;
+    }
 }
 
+// Auto-Refresh every 60 seconds
+setInterval(fetchLiveGoldPrice, 60000);
+
 if (ui.btnRefreshGold) ui.btnRefreshGold.addEventListener('click', fetchLiveGoldPrice);
+
+
+// --- Shared Actions ---
+async function handleSaveGithub() {
+    // Check if token/repo is configured
+    if (!state.github.token || !state.github.repo) {
+        alert('Configure seu GitHub na aba "Configurações" antes de salvar na nuvem.');
+        switchView('settings');
+        return;
+    }
+
+    const btn = event?.currentTarget || document.getElementById('btnSaveGithub');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+    btn.disabled = true;
+
+    try {
+        const gh = new GithubAPI(state.github.owner, state.github.repo);
+        const fileContent = JSON.stringify(state.products, null, 2);
+
+        // Save to path (default or user defined)
+        await gh.saveFile(state.github.path, fileContent, "Update via Dashboard");
+
+        alert('Dados salvos com sucesso no GitHub! ✅');
+        if (ui.ghStatus) {
+            ui.ghStatus.textContent = "Sincronizado";
+            ui.ghStatus.className = "status-text status-success";
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao salvar no GitHub: ' + e.message);
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
 
 
 // --- 2. GitHub Integration ---
@@ -244,23 +304,70 @@ function renderGrid() {
         const tr = document.createElement('tr');
         tr.className = 'grid-row';
         tr.innerHTML = `
-            <td><input type="text" value="${p.sku}" onchange="updateField(${p.id}, 'sku', this.value)"></td>
-            <td><input type="text" value="${p.name}" onchange="updateField(${p.id}, 'name', this.value)"></td>
-            <td>R$ <input type="number" step="0.01" value="${p.rawCost}" onchange="updateField(${p.id}, 'rawCost', this.value)"></td>
-            <td><input type="number" step="0.1" value="${p.weight}" style="width: 60px" onchange="updateField(${p.id}, 'weight', this.value)"> g</td>
-            <td><input type="number" step="1" value="${p.thickness}" style="width: 50px" onchange="updateField(${p.id}, 'thickness', this.value)"> mil</td>
+            <td>
+                <div class="cell-wrapper left">
+                    <input type="text" value="${p.sku}" style="text-align: left;" onchange="updateField(${p.id}, 'sku', this.value)">
+                </div>
+            </td>
+            <td>
+                <div class="cell-wrapper left">
+                    <input type="text" value="${p.name}" style="text-align: left;" onchange="updateField(${p.id}, 'name', this.value)">
+                </div>
+            </td>
+            <td>
+                <div class="cell-wrapper">
+                    <span>R$</span>
+                    <input type="number" step="0.01" value="${p.rawCost}" onchange="updateField(${p.id}, 'rawCost', this.value)">
+                </div>
+            </td>
+            <td>
+                <div class="cell-wrapper">
+                    <input type="number" step="0.1" value="${p.weight}" style="width: 60px" onchange="updateField(${p.id}, 'weight', this.value)">
+                    <span>g</span>
+                </div>
+            </td>
+            <td>
+                <div class="cell-wrapper">
+                    <input type="number" step="1" value="${p.thickness}" style="width: 50px" onchange="updateField(${p.id}, 'thickness', this.value)">
+                    <span>mil</span>
+                </div>
+            </td>
             
-            <!-- Calculated Read-only Columns -->
-            <td class="readonly">R$ ${formatCurrency(p.platingCost)}</td>
-            <td class="readonly">R$ ${formatCurrency(p.totalCost)}</td>
+            <td class="readonly">
+                <div class="cell-wrapper">
+                    <span>R$ ${formatCurrency(p.platingCost)}</span>
+                </div>
+            </td>
+            <td class="readonly">
+                <div class="cell-wrapper">
+                    <span>R$ ${formatCurrency(p.totalCost)}</span>
+                </div>
+            </td>
             
-            <td><input type="number" step="10" value="${p.markupPercent}" style="width: 60px" onchange="updateField(${p.id}, 'markupPercent', this.value)"> %</td>
+            <td>
+                <div class="cell-wrapper">
+                    <input type="number" step="10" value="${p.markupPercent}" style="width: 60px" onchange="updateField(${p.id}, 'markupPercent', this.value)">
+                    <span>%</span>
+                </div>
+            </td>
             
-            <td class="readonly highlight-price">R$ ${formatCurrency(p.salePrice)}</td>
-            <td><button class="btn-icon" onclick="deleteRow(${p.id})"><i class="fa-solid fa-trash"></i></button></td>
+            <td class="readonly highlight-price">
+                <div class="cell-wrapper">
+                    <span>R$ ${formatCurrency(p.salePrice)}</span>
+                </div>
+            </td>
+            <td>
+                <div class="cell-wrapper">
+                    <button class="btn-icon" onclick="deleteRow(${p.id})"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </td>
         `;
         ui.gridBody.appendChild(tr);
     });
+
+    // Update Widget: Total Products
+    const elTotal = document.getElementById('widgetTotalProducts');
+    if (elTotal) elTotal.textContent = state.products.length;
 }
 
 function saveLocal() {
@@ -337,7 +444,9 @@ function switchView(viewName) {
     // Update Subtitle
     const sub = document.getElementById('pageSubtitle');
     if (sub) {
-        sub.textContent = viewName === 'products' ? 'Tabela de Produtos' : 'Configurações & Conexão';
+        if (viewName === 'products') sub.textContent = 'Dashboard Geral';
+        else if (viewName === 'settings') sub.textContent = 'Configurações & Conexão';
+        else if (viewName === 'help') sub.textContent = 'Tutorial de Uso';
     }
 }
 

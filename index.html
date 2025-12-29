@@ -19,22 +19,15 @@
                 <span>Precifica<span class="text-gold">SaaS</span></span>
             </div>
 
-            <div class="status-card">
-                <div class="status-item">
-                    <label>Ouro (Online)</label>
-                    <div class="val-refresh">
-                        <span id="goldPriceDisplay" class="highlight-val">R$ --</span>
-                        <i class="fa-solid fa-sync" id="btnRefreshGold"></i>
-                    </div>
-                    <small id="lastUpdate">Carregando...</small>
-                </div>
-            </div>
+            <!-- Status Card Removed (Moved to Dashboard Widgets) -->
 
             <nav>
                 <a href="#" id="nav-products" class="active" onclick="switchView('products')"><i
-                        class="fa-solid fa-table"></i> Tabela de Produtos</a>
-                <a href="#" id="nav-settings" onclick="switchView('settings')"><i class="fa-brands fa-github"></i>
-                    Conexão GitHub</a>
+                        class="fa-solid fa-table-columns"></i> Dashboard</a>
+                <a href="#" id="nav-settings" onclick="switchView('settings')"><i class="fa-solid fa-sliders"></i>
+                    Configurações</a>
+                <a href="#" id="nav-help" onclick="switchView('help')"><i class="fa-regular fa-circle-question"></i>
+                    Ajuda & Tutorial</a>
             </nav>
         </aside>
 
@@ -43,16 +36,12 @@
             <header class="top-bar">
                 <div class="header-titles">
                     <h2>Gestão de Preços</h2>
-                    <p class="subtitle" id="pageSubtitle">Tabela de Produtos</p>
+                    <p class="subtitle" id="pageSubtitle">Dashboard Geral</p>
                 </div>
 
                 <div class="actions-bar">
-                    <div class="gh-actions">
-                        <span id="ghStatus" class="status-text">Não conectado</span>
-                        <button id="btnLoadGithub" class="btn-secondary"><i class="fa-solid fa-cloud-download-alt"></i>
-                            Baixar do Git</button>
-                        <button id="btnSaveGithub" class="btn-primary"><i class="fa-solid fa-cloud-upload-alt"></i>
-                            Salvar no Git</button>
+                    <div class="status-badge" id="appStatus">
+                        <span class="dot"></span> Sistema Online
                     </div>
                 </div>
             </header>
@@ -88,35 +77,119 @@
                             <input type="text" id="ghPath" placeholder="Ex: dados/produtos.json">
                         </div>
                     </div>
-                    <div class="manual-save" style="margin-top: 2rem;">
-                        <p class="text-muted"><small>As configurações são salvas automaticamente no seu
-                                navegador.</small></p>
+                    <div class="gh-actions-panel">
+                        <button id="btnLoadGithub" class="btn-secondary"><i class="fa-solid fa-cloud-download-alt"></i>
+                            Baixar Dados</button>
+                        <button id="btnSaveGithub" class="btn-primary"><i class="fa-solid fa-cloud-upload-alt"></i>
+                            Salvar Dados</button>
+                        <span id="ghStatus" class="status-text">Não conectado</span>
                     </div>
                 </div>
             </div>
 
-            <!-- VIEW: PRODUCTS (GRID) -->
+            <!-- VIEW: HELP -->
+            <div id="view-help" class="view-section hidden">
+                <div class="help-container">
+                    <div class="help-hero">
+                        <h3><i class="fa-solid fa-book-open"></i> Como usar o Sistema</h3>
+                        <p>Entenda cada campo e como o cálculo da sua semijoia é feito.</p>
+                    </div>
+
+                    <div class="help-grid">
+                        <!-- Card: Logica -->
+                        <div class="card help-card">
+                            <div class="icon-box warning"><i class="fa-solid fa-flask"></i></div>
+                            <h4>O Fator de Banho</h4>
+                            <p>O <strong>Fator de Banho (ex: 0.02)</strong> é a "taxa de conversão" que transforma o
+                                preço do Ouro Puro (24k) no preço que sua galvanoplastia cobra.</p>
+                            <div class="formula-box">
+                                <code>Custo = Peso x Camada x Ouro(g) x Fator</code>
+                            </div>
+                            <p class="small-text">Exemplo: Se o ouro está R$ 475 e o fator é 0.02 (2%), o custo é R$
+                                9,50 por grama/milésimo.</p>
+                        </div>
+
+                        <!-- Card: Passo a Passo -->
+                        <div class="card help-card">
+                            <div class="icon-box primary"><i class="fa-solid fa-list-check"></i></div>
+                            <h4>Preenchendo a Tabela</h4>
+                            <ul class="help-list">
+                                <li><strong>SKU:</strong> Código único do seu produto (Ex: AN01).</li>
+                                <li><strong>Custo Bruto:</strong> Quanto você pagou na peça crua (no bruto).</li>
+                                <li><strong>Peso (g):</strong> Peso da peça em gramas.</li>
+                                <li><strong>Banho (mil):</strong> Quantos milésimos de ouro ela vai receber (Ex: 5, 10).
+                                </li>
+                                <li><strong>Margem %:</strong> Quanto de lucro você quer ter sobre o custo total.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: PRODUCTS (DASHBOARD) -->
             <div id="view-products" class="view-section">
+
+                <!-- Summary Widgets (InfraUtils Style) -->
+                <div class="dashboard-widgets">
+                    <div class="widget">
+                        <div class="widget-info">
+                            <span class="widget-label">Cotação Ouro (24k)</span>
+                            <span class="widget-value text-gold" id="widgetGoldPrice">R$ --</span>
+                            <span class="widget-sub" id="goldLastUpdate">Atualizado Agora <i class="fa-solid fa-rotate"
+                                    onclick="fetchLiveGoldPrice()" style="cursor:pointer"></i></span>
+                        </div>
+                        <div class="widget-icon bg-gold-light">
+                            <i class="fa-solid fa-coins text-gold"></i>
+                        </div>
+                    </div>
+
+                    <div class="widget">
+                        <div class="widget-info">
+                            <span class="widget-label">Total Produtos</span>
+                            <span class="widget-value" id="widgetTotalProducts">0</span>
+                            <span class="widget-sub">Itens Cadastrados</span>
+                        </div>
+                        <div class="widget-icon bg-blue-light">
+                            <i class="fa-solid fa-box text-primary"></i>
+                        </div>
+                    </div>
+
+                    <div class="widget">
+                        <div class="widget-info">
+                            <span class="widget-label">Custo do Banho (Médio)</span>
+                            <span class="widget-value" id="widgetAvgPlating">R$ --</span>
+                            <span class="widget-sub">Por grama/milésimo</span>
+                        </div>
+                        <div class="widget-icon bg-green-light">
+                            <i class="fa-solid fa-droplet text-success"></i>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card grid-card">
                     <div class="grid-header">
-                        <h3>Produtos Cadastrados</h3>
-                        <button class="btn-sm btn-outline" onclick="addRow()"><i class="fa-solid fa-plus"></i> Nova
-                            Linha</button>
+                        <h3>Inventário de Peças</h3>
+                        <div class="header-actions">
+                            <button class="btn-sm btn-secondary" onclick="handleSaveGithub()"><i
+                                    class="fa-solid fa-cloud-upload-alt"></i> Salvar</button>
+                            <button class="btn-sm btn-primary" onclick="addRow()"><i class="fa-solid fa-plus"></i> Novo
+                                Produto</button>
+                        </div>
                     </div>
 
                     <div class="table-container">
                         <table id="gridTable">
                             <thead>
                                 <tr>
-                                    <th style="width: 100px;">SKU</th>
-                                    <th>Produto</th>
-                                    <th style="width: 120px;">Custo Bruto</th>
-                                    <th style="width: 100px;">Peso</th>
-                                    <th style="width: 100px;">Banho</th>
-                                    <th style="width: 120px; background: #f8fafc;">R$ Banho</th>
-                                    <th style="width: 120px; background: #f8fafc;">Total Custo</th>
-                                    <th style="width: 100px;">Margem %</th>
-                                    <th style="width: 140px; color: var(--primary);">Preço Venda</th>
+                                    <th class="text-left" style="width: 90px;">SKU</th>
+                                    <th class="text-left">Produto</th>
+                                    <th style="width: 110px;">Custo Bruto</th>
+                                    <th style="width: 80px;">Peso (g)</th>
+                                    <th style="width: 90px;">Banho (mil)</th>
+                                    <th style="width: 110px; background: #f8fafc;">R$ Banho</th>
+                                    <th style="width: 110px; background: #f8fafc;">Total Custo</th>
+                                    <th style="width: 90px;">Margem %</th>
+                                    <th style="width: 130px; color: var(--primary);">Preço Venda</th>
                                     <th style="width: 50px;"></th>
                                 </tr>
                             </thead>
