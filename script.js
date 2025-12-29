@@ -106,6 +106,37 @@ if (ui.btnRefreshGold) ui.btnRefreshGold.addEventListener('click', fetchLiveGold
 
 
 // --- Shared Actions ---
+async function handleLoadGithub() {
+    if (!state.github.token || !state.github.repo) {
+        alert('Configure seu GitHub na aba "Configurações" antes de carregar.');
+        switchView('settings');
+        return;
+    }
+
+    if (!confirm('Isso irá substituir os dados atuais pelos do GitHub. Deseja continuar?')) return;
+
+    const btn = event?.currentTarget || document.getElementById('btnLoadGithub');
+    const originalText = btn ? btn.innerHTML : '';
+
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Carregando...';
+        btn.disabled = true;
+    }
+
+    try {
+        await GithubAPI.getFile();
+        alert('Dados carregados com sucesso! 📥');
+    } catch (e) {
+        console.error(e);
+        alert('Erro ao carregar: ' + e.message);
+    } finally {
+        if (btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+}
+
 async function handleSaveGithub() {
     // Check if token/repo is configured
     if (!state.github.token || !state.github.repo) {
@@ -120,12 +151,7 @@ async function handleSaveGithub() {
     btn.disabled = true;
 
     try {
-        const gh = new GithubAPI(state.github.owner, state.github.repo);
-        const fileContent = JSON.stringify(state.products, null, 2);
-
-        // Save to path (default or user defined)
-        await gh.saveFile(state.github.path, fileContent, "Update via Dashboard");
-
+        await GithubAPI.saveFile();
         alert('Dados salvos com sucesso no GitHub! ✅');
         if (ui.ghStatus) {
             ui.ghStatus.textContent = "Sincronizado";
