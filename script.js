@@ -308,14 +308,36 @@ function initGithubFields() {
             localStorage.setItem('gh_path', e.target.value);
         });
     }
+    // Plating Factor binding is already handled
     const platingFactorInput = document.getElementById('platingFactor');
     if (platingFactorInput) {
         platingFactorInput.value = state.platingFactor;
         platingFactorInput.addEventListener('change', e => {
             state.platingFactor = parseFloat(e.target.value) || 0;
             localStorage.setItem('platingFactor', e.target.value);
-            recalcAll(); // Recalculate grid if plating factor changes
+            recalcAll();
         });
+    }
+}
+
+// --- View Switching (SPA) ---
+function switchView(viewName) {
+    // Hide all views
+    document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+
+    // Deactivate all nav links
+    document.querySelectorAll('.sidebar nav a').forEach(el => el.classList.remove('active'));
+
+    // Show selected view
+    document.getElementById(`view-${viewName}`).classList.remove('hidden');
+
+    // Activate nav link
+    document.getElementById(`nav-${viewName}`).classList.add('active');
+
+    // Update Subtitle
+    const sub = document.getElementById('pageSubtitle');
+    if (sub) {
+        sub.textContent = viewName === 'products' ? 'Tabela de Produtos' : 'Configurações & Conexão';
     }
 }
 
@@ -323,3 +345,4 @@ window.addRow = addRow;
 window.deleteRow = deleteRow;
 window.updateField = updateField;
 window.GithubAPI = GithubAPI;
+window.switchView = switchView;
