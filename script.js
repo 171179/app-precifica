@@ -337,7 +337,17 @@ function renderGrid() {
             </td>
             <td>
                 <div class="cell-wrapper left">
-                    <input type="text" value="${p.name}" style="text-align: left;" onchange="updateField(${p.id}, 'name', this.value)">
+                    <input type="text" value="${p.name}" title="${p.name}" style="text-align: left;" onchange="updateField(${p.id}, 'name', this.value)">
+                </div>
+            </td>
+            <td>
+                <div class="cell-wrapper left">
+                    <input type="text" value="${p.provider || ''}" placeholder="" style="text-align: left;" onchange="updateField(${p.id}, 'provider', this.value)">
+                </div>
+            </td>
+            <td>
+                <div class="cell-wrapper left">
+                    <input type="text" value="${p.platingProvider || ''}" placeholder="" style="text-align: left;" onchange="updateField(${p.id}, 'platingProvider', this.value)">
                 </div>
             </td>
             <td>
