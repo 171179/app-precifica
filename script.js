@@ -394,14 +394,7 @@ function renderGrid() {
                         onchange="updateField(${p.id}, 'platingCost', this.value)">
                 </div>
             </td>
-            <td>
-                <div class="cell-wrapper">
-                    <span>R$</span>
-                    <input type="number" step="0.01" value="${p.manualPlating ? p.platingCost : p.platingCost.toFixed(2)}" 
-                        title="Digite para fixar. Limpe para cálculo automático."
-                        onchange="updateField(${p.id}, 'platingCost', this.value)">
-                </div>
-            </td>
+
             <td class="readonly">
                 <div class="cell-wrapper">
                     <span>R$ ${formatCurrency(p.totalCost)}</span>
