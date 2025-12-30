@@ -24,9 +24,7 @@
 }
 
 .grid-row input {
-    /* width: 100%; Remove 100% width to allow flex sizing properly */
-    /* but we want it to fill available space in some cases? No, let's stick to flex default or specific width */
-    max-width: 120px;
+    width: 100%;
     border: 1px solid transparent;
     background: transparent;
     padding: 0.4rem;
@@ -437,6 +435,28 @@ td {
     background: #f9fafb;
 }
 
+.btn-danger {
+    background: #fee2e2;
+    color: #ef4444;
+    border: 1px solid #fecaca;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-danger:hover {
+    background: #fecaca;
+    color: #dc2626;
+}
+
+.hidden {
+    display: none !important;
+}
+
 .btn-sm {
     padding: 0.5rem 1rem;
     font-size: 0.8rem;
@@ -481,4 +501,17 @@ td {
     gap: 1rem;
     padding-top: 1.5rem;
     border-top: 1px solid var(--border);
+}
+
+/* Utilities */
+.text-left {
+    text-align: left !important;
+}
+
+.text-center {
+    text-align: center !important;
+}
+
+.text-right {
+    text-align: right !important;
 }

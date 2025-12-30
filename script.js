@@ -286,7 +286,7 @@ function addRow() {
 function recalcAll() {
     state.products.forEach(recalcRow);
     renderGrid();
-    saveLocal();
+    saveLocalData();
 }
 
 function recalcRow(product) {
@@ -329,14 +329,48 @@ function updateField(id, field, value) {
 
     recalcRow(product);
     renderGrid();
-    saveLocal();
+    saveLocalData();
 }
 
 function deleteRow(id) {
     if (!confirm('Deletar linha?')) return;
     state.products = state.products.filter(p => p.id !== id);
     renderGrid();
-    saveLocal();
+    saveLocalData();
+}
+
+// --- Bulk Actions ---
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+    updateDeleteButtonVisibility();
+}
+
+function updateDeleteButtonVisibility() {
+    const selected = document.querySelectorAll('.row-checkbox:checked').length;
+    const btn = document.getElementById('btnDeleteSelected');
+    if (btn) {
+        if (selected > 0) btn.classList.remove('hidden');
+        else btn.classList.add('hidden');
+    }
+}
+
+function deleteSelected() {
+    const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+    if (selectedCheckboxes.length === 0) return;
+
+    if (!confirm(`Tem certeza que deseja excluir ${selectedCheckboxes.length} produtos?`)) return;
+
+    const idsToDelete = Array.from(selectedCheckboxes).map(cb => parseFloat(cb.value));
+    state.products = state.products.filter(p => !idsToDelete.includes(p.id));
+
+    saveLocalData();
+    renderGrid();
+
+    // Uncheck "Select All" if it was checked
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) selectAll.checked = false;
+    updateDeleteButtonVisibility();
 }
 
 function renderGrid() {
@@ -347,6 +381,11 @@ function renderGrid() {
         const tr = document.createElement('tr');
         tr.className = 'grid-row';
         tr.innerHTML = `
+            <td>
+                <div class="cell-wrapper">
+                     <input type="checkbox" class="row-checkbox" value="${p.id}" onclick="updateDeleteButtonVisibility()">
+                </div>
+            </td>
             <td>
                 <div class="cell-wrapper left">
                     <input type="text" value="${p.sku}" style="text-align: left;" onchange="updateField(${p.id}, 'sku', this.value)">
@@ -375,14 +414,12 @@ function renderGrid() {
             </td>
             <td>
                 <div class="cell-wrapper">
-                    <input type="number" step="0.1" value="${p.weight}" style="width: 60px" onchange="updateField(${p.id}, 'weight', this.value)">
-                    <span>g</span>
+                    <input type="number" step="0.1" value="${p.weight}" style="width: 100%; text-align: center;" onchange="updateField(${p.id}, 'weight', this.value)">
                 </div>
             </td>
             <td>
                 <div class="cell-wrapper">
-                    <input type="number" step="1" value="${p.thickness}" style="width: 50px" onchange="updateField(${p.id}, 'thickness', this.value)">
-                    <span>mil</span>
+                    <input type="number" step="1" value="${p.thickness}" style="width: 100%; text-align: center;" onchange="updateField(${p.id}, 'thickness', this.value)">
                 </div>
             </td>
             
@@ -427,7 +464,7 @@ function renderGrid() {
     if (elTotal) elTotal.textContent = state.products.length;
 }
 
-function saveLocal() {
+function saveLocalData() {
     localStorage.setItem('precifica_products', JSON.stringify(state.products));
 }
 
@@ -576,3 +613,205 @@ window.updateField = updateField;
 window.GithubAPI = GithubAPI;
 window.switchView = switchView;
 window.exportToCSV = exportToCSV;
+
+// --- Import Feature (Excel) ---
+async function handleImportExcel(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Check availability of SheetJS
+    if (typeof XLSX === 'undefined') {
+        alert("Erro: Biblioteca SheetJS não carregada. Verifique a conexão.");
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+
+            // Assume first sheet
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+
+            // Convert to JSON (array of arrays)
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+            // Find Header Row (Look for "CODIGO" or "SKU")
+            let headerRowIndex = -1;
+            for (let i = 0; i < Math.min(20, jsonData.length); i++) {
+                const row = jsonData[i];
+                if (row && row.some(cell => typeof cell === 'string' && cell.toUpperCase().includes('CODIGO'))) {
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+
+            if (headerRowIndex === -1) {
+                // If not found, try generic row 0
+                headerRowIndex = 0;
+                console.warn("Cabeçalho 'CODIGO' não encontrado. Tentando linha 0.");
+            }
+
+            const newProducts = [];
+
+            // Iterate from Row after Header
+            for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || row.length === 0) continue;
+
+                // Index Mapping based on Image (A=0, B=1, ...)
+                // A=CODIGO, E=Produto, F=BRUTO, G=BANHO, I=PERCENTUAL
+                const val = (idx) => row[idx] !== undefined ? row[idx] : "";
+
+                const sku = String(val(0)).trim();
+                const name = String(val(4)).trim();
+
+                // Skip empty rows
+                if (!sku && !name) continue;
+
+                const rawCost = parseFloat(String(val(5)).replace(',', '.')) || 0;
+                const platingCost = parseFloat(String(val(6)).replace(',', '.')) || 0;
+                // Markup: Excel might export "300%" as 3 (300%) or 300? 
+                // Usually percentages in Excel are decimals (3.0 = 300%).
+                // If cell is "300%", SheetJS reads as 3. 
+                // Wait, if formatted as text "300%", it's string.
+                // Let's handle both.
+                let markupVal = val(8);
+                let markup = 0;
+                if (typeof markupVal === 'string') {
+                    markup = parseFloat(markupVal.replace('%', '').replace(',', '.'));
+                } else if (typeof markupVal === 'number') {
+                    // If < 10 (e.g., 3.0), likely 300%? Or 3%? 
+                    // Standard Excel: 3 = 300%. 0.5 = 50%.
+                    // System expects 300 for 300%.
+                    markup = markupVal * 100;
+                    // Edge case: if user typed 300 in number cell (not %).
+                    // If > 10, likely already percent.
+                    // But standard is decimal. Let's assume decimal if < 10?
+                    // "300%" usually comes as 3.
+                    // If it is > 10, keep it. 
+                    if (markup < 100 && markup > 0) {
+                        // e.g. 3 -> 300. 
+                        // But what if it IS 3%? Unlikely for semijoias markup (usually > 100%).
+                        // Safe bet: Logic checks.
+                    }
+                    if (markupVal > 10) markup = markupVal; // e.g. 300
+                    else markup = markupVal * 100; // e.g. 3 -> 300
+                }
+
+                // Create Product
+                const p = {
+                    id: Date.now() + Math.random(),
+                    sku: sku,
+                    name: name,
+                    provider: "", // Not in Excel
+                    platingProvider: "", // Not in Excel
+                    rawCost: rawCost,
+                    weight: 0, // Missing
+                    thickness: 0, // Missing
+                    manualPlating: true, // IMPORTANT: Lock plating cost
+                    platingCost: platingCost,
+                    markupPercent: markup,
+                    totalCost: 0, // Will be set below
+                    salePrice: 0 // Will be set below
+                };
+
+                // Calc Logic immediately to ensure state is valid
+                p.totalCost = p.rawCost + p.platingCost;
+                p.salePrice = p.totalCost * (1 + (p.markupPercent / 100));
+
+                newProducts.push(p);
+            }
+
+            if (newProducts.length > 0) {
+                // Confirm Overwrite or Append?
+                // Append is safer.
+                state.products = [...state.products, ...newProducts];
+                saveLocalData();
+                renderGrid();
+                alert(`Sucesso! ${newProducts.length} produtos importados.`);
+
+                // Update Total Count Widget
+                const totalWidget = document.getElementById('widgetTotalProducts');
+                if (totalWidget) totalWidget.textContent = state.products.length;
+
+            } else {
+                alert("Nenhum produto válido encontrado.");
+            }
+
+        } catch (ex) {
+            console.error(ex);
+            alert("Erro ao processar arquivo: " + ex.message);
+        }
+
+        // Reset input
+        input.value = "";
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+// --- Resizable Columns ---
+function initResizableGrid() {
+    const table = document.getElementById('gridTable');
+    if (!table) return;
+
+    const cols = table.querySelectorAll('th');
+    cols.forEach((col) => {
+        // Prevent duplicate resizers
+        if (col.querySelector('.resizer')) return;
+
+        // Create resizer div
+        const resizer = document.createElement('div');
+        resizer.classList.add('resizer');
+        col.appendChild(resizer);
+        createResizableColumn(col, resizer);
+    });
+}
+
+function createResizableColumn(col, resizer) {
+    let x = 0;
+    let w = 0;
+
+    const mouseDownHandler = function (e) {
+        x = e.clientX;
+        const styles = window.getComputedStyle(col);
+        w = parseInt(styles.width, 10);
+
+        document.addEventListener('mousemove', mouseMoveHandler);
+        document.addEventListener('mouseup', mouseUpHandler);
+        resizer.classList.add('resizing');
+    };
+
+    const mouseMoveHandler = function (e) {
+        const dx = e.clientX - x;
+        col.style.width = `${w + dx}px`;
+        col.style.minWidth = `${w + dx}px`; // Override min-width to allow shrinking or growing
+    };
+
+    const mouseUpHandler = function () {
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        document.removeEventListener('mouseup', mouseUpHandler);
+        resizer.classList.remove('resizing');
+    };
+
+    resizer.addEventListener('mousedown', mouseDownHandler);
+}
+
+// Ensure init is called
+document.addEventListener('DOMContentLoaded', () => {
+    // Already calling in main listener? No, I need to call it or add to main.
+    // I'll add a setTimeout to ensure DOM is ready? No, DOMContentLoaded is fine.
+    // But I am appending this code at the END.
+    // I should call it if document is already ready, or just hook it up.
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initResizableGrid);
+    } else {
+        initResizableGrid();
+    }
+});
+window.deleteSelected = deleteSelected;
+window.handleImportExcel = handleImportExcel;
