@@ -7,6 +7,7 @@ const state = {
     products: [],
     goldPrice: 0,
     platingFactor: 0.02, // Aproximadamente 2% do valor do ouro (R$ 470 * 0.02 = R$ 9.40/milésimo)
+    searchTerm: "", // Search filter
     github: {
         token: localStorage.getItem('gh_token') || '',
         owner: localStorage.getItem('gh_owner') || '',
@@ -377,7 +378,15 @@ function renderGrid() {
     if (!ui.gridBody) return;
     ui.gridBody.innerHTML = '';
 
-    state.products.forEach(p => {
+    const term = (state.searchTerm || "").toLowerCase().trim();
+    const filtered = state.products.filter(p => {
+        if (!term) return true;
+        return (p.sku || "").toLowerCase().includes(term) ||
+            (p.name || "").toLowerCase().includes(term) ||
+            (p.provider || "").toLowerCase().includes(term);
+    });
+
+    filtered.forEach(p => {
         const tr = document.createElement('tr');
         tr.className = 'grid-row';
         tr.innerHTML = `
@@ -753,6 +762,13 @@ async function handleImportExcel(input) {
 
     reader.readAsArrayBuffer(file);
 }
+
+function handleSearch(val) {
+    state.searchTerm = val;
+    renderGrid();
+}
+
+window.handleSearch = handleSearch;
 
 // --- Resizable Columns ---
 function initResizableGrid() {
