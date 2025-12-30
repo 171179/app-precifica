@@ -472,17 +472,80 @@ function initGithubFields() {
             localStorage.setItem('gh_path', e.target.value);
         });
     }
-    // Plating Factor binding is already handled
-    const platingFactorInput = document.getElementById('platingFactor');
-    if (platingFactorInput) {
-        platingFactorInput.value = state.platingFactor;
-        platingFactorInput.addEventListener('change', e => {
-            state.platingFactor = parseFloat(e.target.value) || 0;
-            localStorage.setItem('platingFactor', e.target.value);
-            recalcAll();
-        });
+} // End initGithubFields
+
+// --- Export Feature ---
+function exportToCSV() {
+    if (!state.products || state.products.length === 0) {
+        alert("Nenhum produto para exportar.");
+        return;
     }
+
+    const headers = [
+        "SKU",
+        "Produto",
+        "Fornecedor",
+        "Galvanoplastia",
+        "Custo Bruto (R$)",
+        "Peso (g)",
+        "Camada (mil)",
+        "Custo Banho (R$)",
+        "Custo Total (R$)",
+        "Margem (%)",
+        "Preço Venda (R$)"
+    ];
+
+    const escapeCsv = (txt) => {
+        if (!txt) return "";
+        return '"' + String(txt).replace(/"/g, '""') + '"';
+    };
+
+    const formatNum = (num) => {
+        return (parseFloat(num) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const rows = state.products.map(p => [
+        escapeCsv(p.sku),
+        escapeCsv(p.name),
+        escapeCsv(p.provider),
+        escapeCsv(p.platingProvider),
+        formatNum(p.rawCost),
+        formatNum(p.weight),
+        formatNum(p.thickness),
+        formatNum(p.platingCost), // Uses manual or calculated
+        formatNum(p.totalCost),
+        formatNum(p.markupPercent),
+        formatNum(p.salePrice)
+    ]);
+
+    // Add BOM for Excel UTF-8 compatibility
+    let csvContent = "\uFEFF";
+    csvContent += headers.join(";") + "\n";
+    rows.forEach(row => {
+        csvContent += row.join(";") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `precificacao_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
+
+// Plating Factor binding is already handled
+const platingFactorInput = document.getElementById('platingFactor');
+if (platingFactorInput) {
+    platingFactorInput.value = state.platingFactor;
+    platingFactorInput.addEventListener('change', e => {
+        state.platingFactor = parseFloat(e.target.value) || 0;
+        localStorage.setItem('platingFactor', e.target.value);
+        recalcAll();
+    });
+}
+
 
 // --- View Switching (SPA) ---
 function switchView(viewName) {
@@ -512,3 +575,4 @@ window.deleteRow = deleteRow;
 window.updateField = updateField;
 window.GithubAPI = GithubAPI;
 window.switchView = switchView;
+window.exportToCSV = exportToCSV;
