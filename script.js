@@ -285,23 +285,10 @@ ui.btnSaveGithub?.addEventListener('click', () => GithubAPI.saveFile());
 // --- 3. Grid System (Spreadsheet Logic) ---
 
 // Add new empty row
+// Add new empty row - DEPRECATED in favor of Modal
+// Kept for backward combatibility just in case
 function addRow() {
-    const newProduct = {
-        id: Date.now(),
-        sku: '',
-        name: '',
-        rawCost: 0,
-        weight: 0,
-        thickness: 0,
-        markupPercent: 300,
-        // Calculated fields
-        platingCost: 0,
-        totalCost: 0,
-        salePrice: 0
-    };
-    state.products.unshift(newProduct); // Add to top
-    recalcRow(newProduct);
-    renderGrid();
+    openProductModal();
 }
 
 function recalcAll() {
@@ -642,6 +629,82 @@ window.updateField = updateField;
 window.GithubAPI = GithubAPI;
 window.switchView = switchView;
 window.exportToCSV = exportToCSV;
+window.handleSearch = handleSearch; // Explicitly expose
+window.openProductModal = openProductModal;
+window.closeProductModal = closeProductModal;
+window.handleProductSubmit = handleProductSubmit;
+
+// --- Modal Logic ---
+function openProductModal() {
+    const overlay = document.getElementById('productModalOverlay');
+    if (overlay) overlay.classList.add('active');
+    // Focus first input
+    setTimeout(() => {
+        const first = document.querySelector('#newProductForm input');
+        if (first) first.focus();
+    }, 100);
+}
+
+function closeProductModal() {
+    const overlay = document.getElementById('productModalOverlay');
+    if (overlay) overlay.classList.remove('active');
+    document.getElementById('newProductForm').reset();
+}
+
+function handleProductSubmit(e) {
+    e.preventDefault();
+
+    // Gather Data
+    const formData = new FormData(e.target);
+    const sku = formData.get('sku');
+    const name = formData.get('name');
+    const weight = parseFloat(formData.get('weight')) || 0;
+    const rawCost = parseFloat(formData.get('rawCost')) || 0;
+    const markup = parseFloat(formData.get('markupPercent')) || 300;
+
+    // Create Product Object
+    const newProduct = {
+        id: Date.now(),
+        sku: sku,
+        name: name,
+        provider: "",
+        platingProvider: "",
+        rawCost: rawCost,
+        weight: weight,
+        thickness: 0, // Default
+        markupPercent: markup,
+        manualPlating: false, // Default to auto-calc
+        platingCost: 0,
+        totalCost: 0,
+        salePrice: 0
+    };
+
+    // Logic: Plating = Weight * Thickness (0) * Price... 
+    // Wait, thickness is 0 by default? 
+    // If thickness is 0, Plating Cost will be 0.
+    // That's fine for now, user can edit in grid.
+
+    state.products.unshift(newProduct);
+    recalcRow(newProduct); // Calculate costs
+    renderGrid();
+    saveLocalData();
+
+    // Close & Success
+    closeProductModal();
+    // alert('Produto adicionado com sucesso!'); // Optional
+
+    // Update Total Widget
+    const elTotal = document.getElementById('widgetTotalProducts');
+    if (elTotal) elTotal.textContent = state.products.length;
+}
+
+// Close on Escape or Click Outside
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeProductModal();
+});
+document.getElementById('productModalOverlay')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeProductModal();
+});
 
 // --- Import Feature (Excel) ---
 async function handleImportExcel(input) {

@@ -4,232 +4,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Precifica Gold | Sistema Integrado</title>
+    <title>PrecificaGold - Gestão de Preços</title>
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Styles -->
     <link rel="stylesheet" href="style.css">
-    <!-- SheetJS for Excel Import -->
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <!-- SheetJS for Export/Import -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 
 <body>
+
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="logo">
-                <i class="fa-solid fa-gem mobile-icon"></i>
-                <span>Precifica<span class="text-gold">SaaS</span></span>
+            <div class="brand">
+                <div class="brand-icon"><i class="fa-regular fa-gem"></i></div>
+                <div class="brand-text">
+                    <h1>Precifica<span>Gold</span></h1>
+                    <div class="brand-subtitle">Sistema de Preços</div>
+                </div>
             </div>
 
-            <!-- Status Card Removed (Moved to Dashboard Widgets) -->
-
-            <nav>
-                <a href="#" id="nav-products" class="active" onclick="switchView('products')"><i
-                        class="fa-solid fa-table-columns"></i> Dashboard</a>
-                <a href="#" id="nav-settings" onclick="switchView('settings')"><i class="fa-solid fa-sliders"></i>
-                    Configurações</a>
-                <a href="#" id="nav-help" onclick="switchView('help')"><i class="fa-regular fa-circle-question"></i>
-                    Ajuda & Tutorial</a>
+            <nav class="nav-links">
+                <a onclick="switchView('products')" id="nav-products" class="nav-item active">
+                    <i class="fa-solid fa-border-all"></i> Dashboard
+                </a>
+                <a onclick="switchView('settings')" id="nav-settings" class="nav-item">
+                    <i class="fa-solid fa-gear"></i> Configurações
+                </a>
+                <a onclick="switchView('help')" id="nav-help" class="nav-item">
+                    <i class="fa-regular fa-circle-question"></i> Ajuda
+                </a>
             </nav>
         </aside>
 
         <!-- Main Content -->
-        <main class="content">
-            <header class="top-bar">
-                <div class="header-titles">
-                    <h2>Gestão de Preços</h2>
-                    <p class="subtitle" id="pageSubtitle">Dashboard Geral</p>
-                </div>
+        <main class="main-content">
 
-                <div class="actions-bar">
-                    <div class="status-badge" id="appStatus">
-                        <span class="dot"></span> Sistema Online
-                    </div>
+            <!-- Header -->
+            <header class="page-header">
+                <div class="page-title">
+                    <h2 id="pageTitle">Dashboard</h2>
+                    <p id="pageSubtitle">Gestão de Preços</p>
+                </div>
+                <div class="status-badge online">
+                    <i class="fa-solid fa-circle" style="font-size: 8px;"></i> Online
                 </div>
             </header>
 
-            <!-- VIEW: SETTINGS -->
-            <div id="view-settings" class="view-section hidden">
-                <div class="card settings-panel">
-                    <h3><i class="fa-solid fa-sliders"></i> Configurações do Sistema</h3>
-                    <div class="form-grid">
-                        <div class="field">
-                            <label>Fator de Banho</label>
-                            <input type="number" id="platingFactor" step="0.001">
-                            <small class="hint">Referência: 0.02 = 2% do valor do ouro</small>
-                        </div>
-                        <div class="divider"
-                            style="grid-column: span 2; margin: 1rem 0; border-top: 1px solid var(--border);"></div>
-
-                        <!-- GitHub Config Fields -->
-                        <div class="field">
-                            <label>GitHub Token <small>(Personal Access Token)</small></label>
-                            <input type="password" id="ghToken" placeholder="ghp_...">
-                        </div>
-                        <div class="field">
-                            <label>Usuário / Organização</label>
-                            <input type="text" id="ghOwner" placeholder="Ex: usuario">
-                        </div>
-                        <div class="field">
-                            <label>Repositório</label>
-                            <input type="text" id="ghRepo" placeholder="Ex: precifica-db">
-                        </div>
-                        <div class="field">
-                            <label>Caminho do Arquivo <small>(Pasta/Nome.json)</small></label>
-                            <input type="text" id="ghPath" placeholder="Ex: dados/produtos.json">
-                        </div>
-                    </div>
-                    <div class="gh-actions-panel">
-                        <button id="btnLoadGithub" class="btn-secondary"><i class="fa-solid fa-cloud-download-alt"></i>
-                            Baixar Dados</button>
-                        <button id="btnSaveGithub" class="btn-primary"><i class="fa-solid fa-cloud-upload-alt"></i>
-                            Salvar Dados</button>
-                        <span id="ghStatus" class="status-text">Não conectado</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW: HELP -->
-            <div id="view-help" class="view-section hidden">
-                <div class="help-container">
-                    <div class="help-hero">
-                        <h3><i class="fa-solid fa-book-open"></i> Como usar o Sistema</h3>
-                        <p>Entenda cada campo e como o cálculo da sua semijoia é feito.</p>
-                    </div>
-
-                    <div class="help-grid">
-                        <!-- Card: Logica -->
-                        <div class="card help-card">
-                            <div class="icon-box warning"><i class="fa-solid fa-flask"></i></div>
-                            <h4>O Fator de Banho</h4>
-                            <p>O <strong>Fator de Banho (ex: 0.02)</strong> é a "taxa de conversão" que transforma o
-                                preço do Ouro Puro (24k) no preço que sua galvanoplastia cobra.</p>
-                            <div class="formula-box">
-                                <code>Custo = Peso x Camada x Ouro(g) x Fator</code>
-                            </div>
-                            <p class="small-text">Exemplo: Se o ouro está R$ 475 e o fator é 0.02 (2%), o custo é R$
-                                9,50 por grama/milésimo.</p>
-                        </div>
-
-                        <!-- Card: Passo a Passo -->
-                        <div class="card help-card">
-                            <div class="icon-box primary"><i class="fa-solid fa-list-check"></i></div>
-                            <h4>Preenchendo a Tabela</h4>
-                            <ul class="help-list">
-                                <li><strong>SKU:</strong> Código único do seu produto (Ex: AN01).</li>
-                                <li><strong>Custo Bruto:</strong> Quanto você pagou na peça crua (no bruto).</li>
-                                <li><strong>Peso (g):</strong> Peso da peça em gramas.</li>
-                                <li><strong>Banho (mil):</strong> Quantos milésimos de ouro ela vai receber (Ex: 5, 10).
-                                </li>
-                                <li><strong>Margem %:</strong> Quanto de lucro você quer ter sobre o custo total.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW: PRODUCTS (DASHBOARD) -->
+            <!-- VIEW: Products (Dashboard) -->
             <div id="view-products" class="view-section">
 
-                <!-- Summary Widgets (InfraUtils Style) -->
-                <div class="dashboard-widgets">
-                    <div class="widget">
-                        <div class="widget-info">
-                            <span class="widget-label">Cotação Ouro (24k)</span>
-                            <span class="widget-value text-gold" id="widgetGoldPrice">R$ --</span>
-                            <span class="widget-sub" id="goldLastUpdate">Atualizado Agora <i class="fa-solid fa-rotate"
-                                    onclick="fetchLiveGoldPrice()" style="cursor:pointer"></i></span>
+                <!-- KPI Cards -->
+                <div class="kpi-grid">
+                    <!-- Card: Gold Price -->
+                    <!-- Card: Gold Price (CUSTOM DESIGN) -->
+                    <div class="bg-card rounded-xl p-5 card-shadow border border-border slide-up">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 rounded-lg gold-gradient flex items-center justify-center shadow-gold">
+                                    <span class="text-lg">💰</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-foreground">Cotação do Ouro</h3>
+                                    <p class="text-xs text-muted-foreground">Preço por grama (24k)</p>
+                                </div>
+                            </div>
+                            <button id="btnRefreshGold"
+                                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 hover:bg-accent text-muted-foreground h-9 w-9 btn-refresh-custom">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round" class="lucide lucide-refresh-cw h-4 w-4">
+                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                    <path d="M21 3v5h-5"></path>
+                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                                    <path d="M8 16H3v5"></path>
+                                </svg>
+                            </button>
                         </div>
-                        <div class="widget-icon bg-gold-light">
-                            <i class="fa-solid fa-coins text-gold"></i>
+                        <div class="flex items-end justify-between">
+                            <div>
+                                <p class="text-3xl font-bold text-foreground" id="widgetGoldPrice">R$ 0,00</p>
+                                <p class="text-xs text-muted-foreground mt-1" id="goldLastUpdate">Atualizando...</p>
+                            </div>
+                            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-success-light">
+                                <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                                <span class="text-xs font-medium text-success">Online</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="widget">
-                        <div class="widget-info">
-                            <span class="widget-label">Total Produtos</span>
-                            <span class="widget-value" id="widgetTotalProducts">0</span>
-                            <span class="widget-sub">Itens Cadastrados</span>
+                    <!-- Card: Products Count (CUSTOM DESIGN) -->
+                    <div class="bg-card rounded-xl p-5 card-shadow border border-border slide-up"
+                        style="animation-delay: 0.1s;">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-gold"
+                                    style="background: linear-gradient(135deg, #e0e7ff, #c7d2fe);">
+                                    <span class="text-lg">📦</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-foreground">Produtos</h3>
+                                    <p class="text-xs text-muted-foreground">Total Cadastrado</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="widget-icon bg-blue-light">
-                            <i class="fa-solid fa-box text-primary"></i>
+                        <div class="flex items-end justify-between">
+                            <div>
+                                <p class="text-3xl font-bold text-foreground" id="widgetTotalProducts">0</p>
+                                <p class="text-xs text-muted-foreground mt-1">Itens ativos</p>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="widget">
-                        <div class="widget-info">
-                            <span class="widget-label">Custo do Banho (Médio)</span>
-                            <span class="widget-value" id="widgetAvgPlating">R$ --</span>
-                            <span class="widget-sub">Por grama/milésimo</span>
+                    <!-- Card: Avg Plating Cost (CUSTOM DESIGN) -->
+                    <div class="bg-card rounded-xl p-5 card-shadow border border-border slide-up"
+                        style="animation-delay: 0.2s;">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-gold"
+                                    style="background: linear-gradient(135deg, #ffedd5, #fed7aa);">
+                                    <span class="text-lg">⚖️</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-foreground">Custo Banho</h3>
+                                    <p class="text-xs text-muted-foreground">Média por grama</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="widget-icon bg-green-light">
-                            <i class="fa-solid fa-droplet text-success"></i>
+                        <div class="flex items-end justify-between">
+                            <div>
+                                <p class="text-3xl font-bold text-foreground" id="widgetAvgPlating">R$ 0,00</p>
+                                <p class="text-xs text-muted-foreground mt-1">Baseado no mix atual</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="card grid-card">
-                    <div class="grid-header">
-                        <h3>Inventário de Peças</h3>
-                        <div class="header-actions">
-                            <div class="search-container">
-                                <i class="fa-solid fa-search"></i>
-                                <input type="text" id="searchInput" placeholder="Pesquisar..."
-                                    onkeyup="handleSearch(this.value)">
+                <!-- Product Grid Wrapper (Card Style) -->
+                <div class="bg-card rounded-xl card-shadow border border-border slide-up"
+                    style="animation-delay: 0.3s; padding: 0;">
+                    <div class="grid-actions" style="padding: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                        <div class="grid-title">
+                            <h3>Inventário de Peças</h3>
+                            <p style="font-size: 0.85rem; color: #888;">Gerencie de forma fácil</p>
+                        </div>
+                        <div class="grid-actions">
+                            <div class="search-box">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" placeholder="Pesquisar..." oninput="handleSearch(this.value)">
                             </div>
-                            <button class="btn-sm btn-secondary" onclick="exportToCSV()"
-                                title="Exportar para Excel/CSV">
-                                <i class="fa-solid fa-file-excel"></i> Exportar</button>
 
-                            <button id="btnDeleteSelected" class="btn-sm btn-danger hidden" onclick="deleteSelected()"
-                                title="Deletar Selecionados (Lixeira)"><i class="fa-solid fa-trash-can"></i></button>
+                            <!-- Actions: Export/Import -->
+                            <button class="btn btn-outline" onclick="exportToCSV()" title="Exportar para CSV">
+                                <i class="fa-solid fa-file-export"></i> Exportar
+                            </button>
+                            <label class="btn btn-outline" style="cursor: pointer;" title="Importar de Excel">
+                                <i class="fa-solid fa-file-import"></i> Importar
+                                <input type="file" id="importExcelBtnToolbar" accept=".xlsx, .xls"
+                                    style="display: none;" onchange="handleImportExcel(this)">
+                            </label>
 
-                            <!-- Import Excel -->
-                            <input type="file" id="importExcel" accept=".xlsx, .xls" style="display:none"
-                                onchange="handleImportExcel(this)">
-                            <button class="btn-sm btn-secondary"
-                                onclick="document.getElementById('importExcel').click()"
-                                title="Importar Planilha XLSX"><i class="fa-solid fa-file-import"></i> Importar</button>
-                            <button class="btn-sm btn-secondary" onclick="handleLoadGithub()"
-                                title="Baixar dados do GitHub"><i class="fa-solid fa-cloud-download-alt"></i>
-                                Carregar</button>
-                            <button class="btn-sm btn-secondary" onclick="handleSaveGithub()"><i
-                                    class="fa-solid fa-cloud-upload-alt"></i> Salvar</button>
-                            <button class="btn-sm btn-primary" onclick="addRow()"><i class="fa-solid fa-plus"></i> Novo
-                                Produto</button>
+                            <!-- Actions: Cloud -->
+                            <button class="btn btn-outline" id="btnLoadGithub" onclick="handleLoadGithub()"
+                                title="Baixar do GitHub">
+                                <i class="fa-solid fa-cloud-arrow-down"></i> Carregar
+                            </button>
+                            <button class="btn btn-outline" id="btnSaveGithub" onclick="handleSaveGithub()"
+                                title="Salvar no GitHub">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Salvar
+                            </button>
+
+                            <button class="btn btn-primary" onclick="openProductModal()">
+                                <i class="fa-solid fa-plus"></i> Novo Produto
+                            </button>
                         </div>
                     </div>
 
-                    <div class="table-container">
+                    <!-- Bulk Actions Bar (Hidden by default) -->
+                    <div id="btnDeleteSelected" class="hidden"
+                        style="margin-bottom: 1rem; background: #FFF0F0; padding: 10px; border-radius: 8px; border: 1px solid #FFCDCD; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="color: var(--accent-red); font-weight: 500;">Itens selecionados</span>
+                        <button class="btn btn-danger-outline" onclick="deleteSelected()"
+                            style="font-size: 0.85rem; padding: 6px 14px;">
+                            <i class="fa-solid fa-trash"></i> Excluir Selecionados
+                        </button>
+                    </div>
+
+                    <div style="overflow-x: auto;">
                         <table id="gridTable">
                             <thead>
-                                <tr></tr>
-                                <th class="text-center" style="width: 40px;"><input type="checkbox" id="selectAll"
-                                        onclick="toggleSelectAll(this)"></th>
-                                <th class="text-left" style="width: 90px;">SKU</th>
-                                <th class="text-left" style="min-width: 380px;">Produto</th>
-                                <th class="text-left" style="width: 120px;">Fornecedor</th>
-                                <th class="text-left" style="width: 120px;">Galvanoplastia</th>
-                                <th style="width: 110px;">Custo Bruto</th>
-                                <th style="width: 80px;">Peso (g)</th>
-                                <th style="width: 90px;">Banho (mil)</th>
-                                <th style="width: 110px; background: #f8fafc;">R$ Banho</th>
-                                <th style="width: 110px; background: #f8fafc;">Total Custo</th>
-                                <th style="width: 90px;">Margem %</th>
-                                <th style="width: 130px; color: var(--primary);">Preço Venda</th>
-                                <th style="width: 50px;"></th>
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="selectAll"
+                                            onclick="toggleSelectAll(this)"></th>
+                                    <th style="min-width: 80px;">SKU</th>
+                                    <th style="min-width: 200px;">Produto</th>
+                                    <th>Fornecedor</th>
+                                    <th>Galvanoplastia</th>
+                                    <th>Custo Bruto</th>
+                                    <th>Peso (g)</th>
+                                    <th>Camada (mil)</th>
+                                    <th>Custo Banho</th>
+                                    <th>Custo Total</th>
+                                    <th>Margem (%)</th>
+                                    <th>Venda (R$)</th>
+                                    <th style="width: 50px;"></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Rows rendered by JS -->
+                                <!-- JS will populate rows here -->
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
+            <!-- VIEW: Settings -->
+            <div id="view-settings" class="view-section hidden">
+                <div class="grid-container" style="max-width: 800px; margin: 0 auto;">
+                    <div class="grid-header">
+                        <h3><i class="fa-solid fa-sliders"></i> Configurações do Sistema</h3>
+                    </div>
+
+                    <div class="form-grid">
+
+                        <!-- 1. Calculation Parameters (Top) -->
+                        <div class="form-group full">
+                            <h4>Fator de Banho</h4>
+                        </div>
+                        <div class="form-group full">
+                            <input type="number" id="platingFactor" step="0.001" placeholder="0.02">
+                            <small style="color: #999">Referência: 0.02 = 2% do valor do ouro</small>
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="form-group full">
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
+                        </div>
+
+                        <!-- 2. GitHub Configuration -->
+                        <div class="form-group full">
+                            <h4>GitHub Token (Personal Access Token)</h4>
+                            <input type="password" id="ghToken" placeholder="ghp_...">
+                        </div>
+                        <div class="form-group full">
+                            <h4>Usuário / Organização</h4>
+                            <input type="text" id="ghOwner" placeholder="ex: seu-usuario">
+                        </div>
+                        <div class="form-group full">
+                            <h4>Repositório</h4>
+                            <input type="text" id="ghRepo" placeholder="ex: precifica-db">
+                        </div>
+                        <div class="form-group full">
+                            <h4>Caminho do Arquivo (Pasta/Nome.json)</h4>
+                            <input type="text" id="ghPath" placeholder="ex: tabela.json">
+                        </div>
+
+                        <!-- Divider -->
+                        <div class="form-group full">
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 1rem 0;">
+                        </div>
+
+                        <!-- 3. Actions & Status -->
+                        <div class="form-group full" style="display: flex; gap: 1rem; align-items: center;">
+                            <button class="btn btn-outline" id="btnLoadGithubSettings" onclick="handleLoadGithub()"
+                                style="min-width: 140px; justify-content: center;">
+                                <i class="fa-solid fa-cloud-arrow-down"></i> Baixar Dados
+                            </button>
+                            <button class="btn btn-primary" id="btnSaveGithubSettings" onclick="handleSaveGithub()"
+                                style="min-width: 140px; justify-content: center;">
+                                <i class="fa-solid fa-cloud-arrow-up"></i> Salvar Dados
+                            </button>
+                            <div id="ghStatus" style="color: var(--accent-green); font-weight: 500;">
+                                Sincronizado (Leitura OK)
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: Help -->
+            <div id="view-help" class="view-section hidden">
+                <div class="grid-container">
+                    <h3>Ajuda e Tutorial</h3>
+                    <p>Em breve, tutoriais detalhados aqui.</p>
+                </div>
+            </div>
+
         </main>
     </div>
+
+    <!-- MODAL: New Product -->
+    <div class="modal-overlay" id="productModalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <h3>Novo Produto</h3>
+                    <p style="font-size: 0.85rem; color: #888;">Preencha os dados do item</p>
+                </div>
+                <button class="close-modal" onclick="closeProductModal()">&times;</button>
+            </div>
+
+            <form id="newProductForm" onsubmit="handleProductSubmit(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Referência / SKU</label>
+                        <input type="text" name="sku" placeholder="Ex: BR-001" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Peso (gramas)</label>
+                        <input type="number" name="weight" step="0.1" placeholder="0.00">
+                    </div>
+                    <div class="form-group full">
+                        <label>Descrição do Produto</label>
+                        <input type="text" name="name" placeholder="Ex: Colar Riviera" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Mão de Obra / Custo Bruto (R$)</label>
+                        <input type="number" name="rawCost" step="0.01" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Margem (%)</label>
+                        <input type="number" name="markupPercent" step="1" value="300">
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 
