@@ -40,7 +40,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initial Data Load (Local first, then GitHub if available)
     const localData = localStorage.getItem('precifica_products');
     if (localData) {
-        state.products = JSON.parse(localData);
+        let loaded = JSON.parse(localData);
+        // Sanitize: filter invalid and ensure ID
+        state.products = (Array.isArray(loaded) ? loaded : [])
+            .filter(p => p && (p.sku || p.name))
+            .map((p, index) => ({ ...p, id: p.id || (Date.now() + index) }));
         renderGrid();
     }
 
@@ -191,11 +195,26 @@ class GithubAPI {
             const data = await res.json();
             // Content is base64 encoded
             const content = atob(data.content);
-            const products = JSON.parse(content);
+            let products = JSON.parse(content);
+
+            // Validation: Ensure array
+            if (!Array.isArray(products)) {
+                console.warn('GitHub Data is not an array:', products);
+                if (products && Array.isArray(products.products)) {
+                    products = products.products; // Unwrap { products: [...] }
+                } else if (products && Array.isArray(products.data)) {
+                    products = products.data; // Unwrap { data: [...] }
+                } else {
+                    products = []; // Default empty to prevent crash
+                    alert('Aviso: O arquivo no GitHub não contém uma lista válida de produtos. Iniciando vazio.');
+                }
+            }
+
+            // Filter out empty/invalid rows
+            products = products.filter(p => p && (p.sku || p.name));
 
             state.products = products;
-            renderGrid();
-            recalcAll(); // Recalc with current local gold price
+            recalcAll(); // Recalc with current local gold price (this also calls renderGrid)
 
             state.github.sha = data.sha; // Save SHA for updates
             if (ui.ghStatus) {
@@ -204,8 +223,9 @@ class GithubAPI {
             }
         } catch (e) {
             console.error(e);
+            alert(`Erro ao conectar no GitHub:\n${e.message}\n\nVerifique:\n1. Token (não expirou?)\n2. Nome do Repositório\n3. Permissões do Token`);
             if (ui.ghStatus) {
-                ui.ghStatus.textContent = 'Erro ao ler do Git';
+                ui.ghStatus.textContent = `Erro: ${e.message}`;
                 ui.ghStatus.style.color = 'var(--danger)';
             }
         }
@@ -435,7 +455,7 @@ function renderGrid() {
             <td>
                 <div class="cell-wrapper">
                     <span>R$</span>
-                    <input type="number" step="0.01" value="${p.manualPlating ? p.platingCost : p.platingCost.toFixed(2)}" 
+                    <input type="number" step="0.01" value="${p.manualPlating ? p.platingCost : (p.platingCost || 0).toFixed(2)}" 
                         title="Digite para fixar. Limpe para cálculo automático."
                         onchange="updateField(${p.id}, 'platingCost', this.value)">
                 </div>
@@ -478,7 +498,7 @@ function saveLocalData() {
 }
 
 // Helpers
-function formatCurrency(val) { return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function formatCurrency(val) { return (val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 // Settings Management
 function loadSettings() {
