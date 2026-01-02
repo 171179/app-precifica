@@ -466,6 +466,11 @@ function renderGrid() {
                     <span>R$ ${formatCurrency(p.salePrice)}</span>
                 </div>
             </td>
+            <td class="readonly highlight-profit">
+                <div class="cell-wrapper">
+                    <span style="color: var(--accent-green); font-weight: bold;">R$ ${formatCurrency((p.salePrice || 0) - (p.totalCost || 0))}</span>
+                </div>
+            </td>
             <td>
                 <div class="cell-wrapper">
                     <button class="btn-icon" onclick="deleteRow(${p.id})"><i class="fa-solid fa-trash"></i></button>
