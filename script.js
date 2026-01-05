@@ -37,6 +37,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadSettings();
     initGithubFields();
 
+    // Sidebar Toggle
+    const btnToggle = document.getElementById('sidebarToggle');
+    if (btnToggle) {
+        btnToggle.addEventListener('click', () => {
+            const app = document.querySelector('.app-container');
+            const icon = btnToggle.querySelector('i');
+            app.classList.toggle('collapsed');
+
+            // Toggle Icon: << to >>
+            if (app.classList.contains('collapsed')) {
+                icon.classList.remove('fa-angles-left');
+                icon.classList.add('fa-angles-right');
+            } else {
+                icon.classList.remove('fa-angles-right');
+                icon.classList.add('fa-angles-left');
+            }
+        });
+    }
+
+    // Logo Click to Open (when collapsed)
+    const logoContainer = document.querySelector('.logo-container');
+    if (logoContainer) {
+        logoContainer.addEventListener('click', () => {
+            const app = document.querySelector('.app-container');
+            if (app.classList.contains('collapsed')) {
+                app.classList.remove('collapsed');
+                // Reset icon state
+                const btnIcon = document.querySelector('#sidebarToggle i');
+                if (btnIcon) {
+                    btnIcon.classList.remove('fa-angles-right');
+                    btnIcon.classList.add('fa-angles-left');
+                }
+            }
+        });
+    }
+
     // Initial Data Load (Local first, then GitHub if available)
     const localData = localStorage.getItem('precifica_products');
     if (localData) {
