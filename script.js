@@ -40,7 +40,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Sidebar Toggle
     const btnToggle = document.getElementById('sidebarToggle');
     if (btnToggle) {
-        btnToggle.addEventListener('click', () => {
+        btnToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
             const app = document.querySelector('.app-container');
             const icon = btnToggle.querySelector('i');
             app.classList.toggle('collapsed');
