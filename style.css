@@ -440,6 +440,39 @@ header p {
 
 /* End Custom Gold Card */
 
+/* Resizable Columns */
+th {
+    position: relative;
+    user-select: none;
+    /* Prevent text selection while resizing */
+}
+
+.resizer {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 70%;
+    cursor: col-resize;
+    background-color: transparent;
+    /* Invisible/subtle by default */
+    z-index: 10;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.resizer:hover,
+.resizer.resizing {
+    background-color: var(--primary-color);
+    /* Highlight on hover/drag */
+    opacity: 0.8;
+}
+
+tbody tr:hover {
+    background-color: var(--table-hover);
+}
+
 .grid-header {
     display: flex;
     justify-content: space-between;
@@ -748,17 +781,34 @@ td input:focus {
     text-align: center;
 }
 
-/* Scrollbar */
+
+/* Custom Scrollbar for Webkit */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 10px;
+    height: 12px;
+    /* Taller horizontal scrollbar */
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
+    background: #f1f1f1;
+    border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #D1D1D1;
-    border-radius: 3px;
+    background: #ccc;
+    border-radius: 5px;
+    border: 2px solid #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #bbb;
+}
+
+/* Ensure table container scrolls */
+.grid-container,
+.table-responsive {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 20px;
+    /* Space for scrollbar */
 }

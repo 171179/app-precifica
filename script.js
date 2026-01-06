@@ -103,7 +103,11 @@ async function fetchLiveGoldPrice() {
         updateGoldUI(priceGram, data.XAUBRL.create_date);
 
         // Auto-recalculate entire grid on gold update
-        recalcAll();
+        GithubAPI.init();
+
+        // Initialize Resizable Columns
+        initResizableColumns();
+
     } catch (error) {
         console.error('Gold API Error:', error);
         // alert('Erro ao buscar cotação online. Verifique conexão.');
@@ -202,11 +206,80 @@ async function handleSaveGithub() {
     } catch (e) {
         console.error(e);
         alert('Erro ao salvar no GitHub: ' + e.message);
-    } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
 }
+
+// --- Resizable Columns Logic ---
+function initResizableColumns() {
+    const table = document.getElementById('gridTable');
+    if (!table) return;
+
+    const cols = table.querySelectorAll('th');
+
+    // Load saved widths
+    const savedWidths = JSON.parse(localStorage.getItem('precifica_col_widths') || '{}');
+    cols.forEach((col, index) => {
+        if (savedWidths[index]) {
+            col.style.width = savedWidths[index];
+            col.style.minWidth = savedWidths[index]; // Enforce min-width
+        }
+
+        // Don't add resizer to the last column (Actions) or Checkbox
+        if (index === 0 || index === cols.length - 1) return;
+
+        // Create Resizer Div
+        const resizer = document.createElement('div');
+        resizer.classList.add('resizer');
+        col.appendChild(resizer);
+
+        createResizableColumn(col, resizer);
+    });
+}
+
+function createResizableColumn(col, resizer) {
+    let x = 0;
+    let w = 0;
+
+    const mouseDownHandler = function (e) {
+        x = e.clientX;
+        const styles = window.getComputedStyle(col);
+        w = parseInt(styles.width, 10);
+
+        document.addEventListener('mousemove', mouseMoveHandler);
+        document.addEventListener('mouseup', mouseUpHandler);
+        resizer.classList.add('resizing');
+    };
+
+    const mouseMoveHandler = function (e) {
+        const dx = e.clientX - x;
+        col.style.width = `${w + dx}px`;
+        col.style.minWidth = `${w + dx}px`; // Force sync
+    };
+
+    const mouseUpHandler = function () {
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        document.removeEventListener('mouseup', mouseUpHandler);
+        resizer.classList.remove('resizing');
+
+        // Save widths
+        saveColumnWidths();
+    };
+
+    resizer.addEventListener('mousedown', mouseDownHandler);
+}
+
+function saveColumnWidths() {
+    const table = document.getElementById('gridTable');
+    const cols = table.querySelectorAll('th');
+    const widths = {};
+    cols.forEach((col, index) => {
+        widths[index] = col.style.width;
+    });
+    localStorage.setItem('precifica_col_widths', JSON.stringify(widths));
+}
+// --- End Resizable Columns Logic ---
 
 
 // --- 2. GitHub Integration ---
@@ -506,6 +579,21 @@ function renderGrid() {
             <td class="readonly highlight-profit">
                 <div class="cell-wrapper">
                     <span style="color: var(--accent-green); font-weight: bold;">R$ ${formatCurrency((p.salePrice || 0) - (p.totalCost || 0))}</span>
+                </div>
+            </td>
+            <td>
+                <div class="cell-wrapper">
+                    <input type="number" step="1" value="${p.stock || 0}" style="width: 60px; text-align: center;" onchange="updateField(${p.id}, 'stock', this.value)">
+                </div>
+            </td>
+            <td>
+                <div class="cell-wrapper">
+                    <input type="number" step="1" value="${p.sold || 0}" style="width: 60px; text-align: center;" onchange="updateField(${p.id}, 'sold', this.value)">
+                </div>
+            </td>
+            <td class="readonly">
+                <div class="cell-wrapper">
+                    <span style="color: var(--accent-green); font-weight: bold;">R$ ${formatCurrency(((p.salePrice || 0) - (p.totalCost || 0)) * (p.sold || 0))}</span>
                 </div>
             </td>
             <td>
