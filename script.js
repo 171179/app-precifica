@@ -206,6 +206,7 @@ async function handleSaveGithub() {
     } catch (e) {
         console.error(e);
         alert('Erro ao salvar no GitHub: ' + e.message);
+    } finally {
         btn.innerHTML = originalText;
         btn.disabled = false;
     }
@@ -370,11 +371,47 @@ class GithubAPI {
                 ui.ghStatus.style.color = 'var(--success)';
             }
         } catch (e) {
+            // Auto-recover from 409 (SHA Mismatch) logic
+            if (e.message.includes('409')) {
+                console.warn('Conflict detected (409). Fetching latest SHA and retrying...');
+                try {
+                    // Fetch latest file details to get new SHA
+                    const resConfig = await fetch(url, { headers: this.headers });
+                    if (resConfig.ok) {
+                        const dataConfig = await resConfig.json();
+                        state.github.sha = dataConfig.sha; // Update SHA
+
+                        // Retry Save
+                        body.sha = state.github.sha;
+                        const resRetry = await fetch(url, {
+                            method: 'PUT',
+                            headers: this.headers,
+                            body: JSON.stringify(body)
+                        });
+
+                        if (!resRetry.ok) throw new Error(`Retry failed: ${resRetry.status}`);
+                        const dataRetry = await resRetry.json();
+                        state.github.sha = dataRetry.content.sha;
+
+                        if (ui.ghStatus) {
+                            ui.ghStatus.textContent = 'Sincronizado (Conflito Resolvido)';
+                            ui.ghStatus.style.color = 'var(--success)';
+                        }
+                        return; // Success!
+                    }
+                } catch (retryErr) {
+                    console.error('Retry failed:', retryErr);
+                    // Fall through to main error handler
+                }
+            }
+
             console.error(e);
+            alert(`Erro ao salvar no GitHub: ${e.message}\nVerifique se o token tem permissão de escrita (repo).`);
             if (ui.ghStatus) {
                 ui.ghStatus.textContent = 'Erro ao salvar';
                 ui.ghStatus.style.color = 'var(--danger)';
             }
+            throw e; // Re-throw
         }
     }
 }
